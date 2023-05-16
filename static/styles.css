@@ -1,0 +1,83 @@
+body, html {
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+}
+
+#controls-container {
+    width: 100%;
+}
+
+#map {
+    width: 100%;
+    height: calc(100vh - 150px); /* Adjust 150px to the height of your controls */
+}
+
+body.controls-hidden #map {
+    height: 100vh;
+}
+
+#slider-container {
+    margin-top: 10px;
+}
+
+#slider-label {
+    margin-right: 10px;
+}
+
+#population-table {
+    margin-top: 20px;
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    border: 1px solid black;
+    padding: 5px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+/* New CSS */
+#slider {
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+#slider::-webkit-slider-runnable-track {
+    background: repeating-linear-gradient(to right, #ddd, #ddd 1px, #fff 1px, #fff 10%);
+}
+
+#slider::-moz-range-track {
+    background: repeating-linear-gradient(to right, #ddd, #ddd 1px, #fff 1px, #fff 10%);
+}
+
+#slider::-ms-fill-lower {
+    background: repeating-linear-gradient(to right, #ddd, #ddd 1px, #fff 1px, #fff 10%);
+}
+
+.wind-icon {
+    fill: url(#wind-pattern);
+    stroke: black;
+    stroke-width: 1;
+}
+
+.wind-line {
+    stroke: #000;
+    stroke-width: 10;
+}
+#toggle-controls {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
