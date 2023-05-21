@@ -26,7 +26,11 @@
     </pattern>
   </defs>
 </svg>
-    <div id="map"></div>
+    <div id="map">
+    <div id="logo-container">
+        <img id="logo" src="static/images/rhrlogono.png">
+    </div>
+</div>
     <div class="container">
         <div class="row">
             <div class="col-12 d-flex justify-content-end">
@@ -46,26 +50,10 @@
                     <span>2021</span>
                     <span>2022</span>
                     <span>2023</span>
-                    <span>2024</span>
-                    <span>2025</span>
                 </div>
-                <input type="range" id="slider" min="2020" max="2025" step="1" value="2020" class="form-range">
+              <input id="slider" type="range" min="0" max="3" step="1" value="0">
             </div>
         </div>
-    </div>
-  <!-- Add this right above the "population-table" div -->
-    <div id="county-toggles">
-        <label for="travis-radii-toggle">Travis County Commute:</label>
-        <input type="checkbox" id="travis-radii-toggle">
-        <br>
-        <label for="blanco-radii-toggle">Blanco County Commute:</label>
-        <input type="checkbox" id="blanco-radii-toggle">
-        <br>
-        <label for="hays-radii-toggle">Hays County Commute:</label>
-        <input type="checkbox" id="hays-radii-toggle">
-        <br>
-        <label for="comal-radii-toggle">Comal County Commute:</label>
-        <input type="checkbox" id="comal-radii-toggle">
     </div>
     <div id="population-table">
         <table>
@@ -101,6 +89,11 @@
         </table>
     </div>
     <script type="module" src="/static/map.js"> </script>
+<footer class="footer">
+    <div class="container-fluid text-center">
+        <span class="text-muted">© 2023 RHR Map</span>
+    </div>
+</footer>
 </body>
 </html>
 
