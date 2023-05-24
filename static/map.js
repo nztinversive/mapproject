@@ -1,8 +1,16 @@
-      import { mapCenter, baseLayerAttribution, baseLayerUrl, subdivisions, countyCoordinates, countyCommuteData, allCountiesGeoJSONUrl } from './mapData.js';
+import { mapCenter, baseLayerAttribution, baseLayerUrl, subdivisions, countyCoordinates, countyCommuteData, allCountiesGeoJSONUrl } from './mapData.js';
 
 
         let data = null;
-        
+
+        function getYearFromDate(dateString) {
+            return new Date(dateString).getFullYear();
+        }
+
+       subdivisions.forEach(subdivision => {
+          subdivision.date = new Date(subdivision.date);
+      });
+
         // Create a new layer group for subdivisions
         const subdivisionLayerGroup = L.layerGroup();
         
@@ -13,46 +21,22 @@
             attribution: baseLayerAttribution
         }).addTo(map);
         
-        // Create a GeoSearchControl
-        let searchControl = new GeoSearch.GeoSearchControl({
-            provider: new GeoSearch.OpenStreetMapProvider(),
-            style: 'bar', 
-            showMarker: true, // optional: true|false  - default true
-            showPopup: false, // optional: true|false  - default false
-            marker: {
-                // optional: L.Marker    - default L.Icon.Default
-                icon: new L.Icon.Default(),
-                draggable: false,
-            },
-            popupFormat: ({ query, result }) => result.label, // optional: function    - default returns result label
-            maxMarkers: 1, // optional: number      - default 1
-            retainZoomLevel: false, // optional: true|false  - default false
-            animateZoom: true, // optional: true|false  - default true
-            autoClose: false, // optional: true|false  - default false
-            searchLabel: 'Enter address', // optional: string      - default 'Enter address'
-            keepResult: true // optional: true|false  - default false
+
+        let myIcon = L.icon({
+              iconUrl: 'static/images/marker-icon-blue.png',
+              iconSize: [30, 44],
+              iconAnchor: [22, 94],
+              popupAnchor: [-3, -76]
         });
-        
-        // Add the search control to the map
-        map.addControl(searchControl);
-        
-        // Create a variable to store the last marker
-        let lastMarker;
-        
-        // Add an event listener to the search control
-        searchControl.getContainer().addEventListener('click', () => {
-            // If a last marker exists, remove it from the map
-            if (lastMarker) {
-                map.removeLayer(lastMarker);
-            }
-        });
-        
-        // Listen to the search event
-        map.on('geosearch/showlocation', function (e) {
-            // Store the current marker as the last marker
-            lastMarker = e.marker;
-        });
-                        
+      
+
+        let noAddressIcon = new L.Icon({
+            iconUrl: 'static/images/marker-icon-red.png',
+            iconSize: [30, 44],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34]
+        });        
+
         // Load the data from the Flask API
         async function fetchData() {
             const response = await fetch('/api/data');
@@ -97,31 +81,45 @@
         async function loadGeoJSON(geoJSONUrl, countyName, customStyle = null) {
             const response = await fetch(geoJSONUrl);
             const geoJSONData = await response.json();
-
+        
             // Filter the county
             const filteredGeoJSONData = {
                 ...geoJSONData,
                 features: geoJSONData.features.filter(feature => feature.properties.name === countyName)
             };
-
+        
             let countyOverlay;
             if (customStyle) {
-                countyOverlay = L.geoJSON(filteredGeoJSONData, { style: customStyle });
+                countyOverlay = L.geoJSON(filteredGeoJSONData, { 
+                    style: customStyle,
+                    onEachFeature: function(feature, layer) {
+                        // Here we are creating a label and adding it to the layer
+                        let label = L.marker(layer.getBounds().getCenter(), {
+                            icon: L.divIcon({
+                                className: 'county-label', 
+                                html: feature.properties.name,
+                                iconSize: [100, 25]
+                            }),
+                            interactive: false
+                        }).addTo(map);
+                    }
+                });
             } else {
                 countyOverlay = L.geoJSON(filteredGeoJSONData);
             }
-
+        
             countyOverlay.addTo(countyOverlayLayerGroup);
         }
-
+        
         function createCommuteCircles(coordinates, commuteData, county) {
-            const colors = ['rgba(0, 255, 0, 1)', 'rgba(135, 206, 235, 1)', 'rgba(255, 255, 0, 0.5)', 'rgba(255, 165, 0, 0.5)', 'rgba(255, 0, 0, 0.5)']; // Green, Blue, Yellow, Orange, Red
+            const colors = ['rgba(0, 255, 0, 1)', 'rgba(0, 0, 139, 1)', 'rgba(255, 255, 0, 0.5)', 'rgba(255, 165, 0, 0.5)', 'rgba(255, 0, 0, 0.5)'];
+ // Green, Blue, Yellow, Orange, Red
             const borderColor = 'black';
             let circleLayerGroup = L.layerGroup();  // Create a layer group   
               
-            // Sort the commuteData array in ascending order by commute time
-            commuteData.sort((a, b) => a.time - b.time);
-          
+            // Sort the commuteData array in descending order by commute time
+            commuteData.sort((a, b) => b.time - a.time);
+                  
             const legendHTML = createLegend(commuteData, colors);
         
             for (let i = 0; i < commuteData.length; i++) {
@@ -139,8 +137,6 @@
                 circle.bindPopup(`
                     <div>
                         <b>County:</b> ${county}<br>
-                        <b>Commute Time:</b> ${commuteData[i].time} minutes<br>
-                        <b>Percentage:</b> ${(commuteData[i].percentage * 100).toFixed(2)}%
                         <div style="margin-top: 10px;">
                             <b>Color Key:</b>
                             ${legendHTML}
@@ -148,78 +144,85 @@
                     </div>
                 `);
                       
-                circle.on('mouseover', function (e) {
-                    if (i < commuteData.length - 1) { // if not the last (largest) circle
-                        // hide the larger circle
-                        circleLayerGroup.getLayers()[i + 1].setStyle({
-                            fillOpacity: 0 // hide the larger circle
-                        });
-                    }
-                    this.openPopup();
-                });
-        
-                circle.on('mouseout', function (e) {
-                    if (i < commuteData.length - 1) { // if not the last (largest) circle
-                        // show the larger circle
-                        circleLayerGroup.getLayers()[i + 1].setStyle({
-                            fillOpacity: 0.5 // show the larger circle
-                        });
-                    }
-                    this.closePopup();
-                });
-        
-                // Add the circle to the feature group
+           // Add the circle to the feature group
                 circleLayerGroup.addLayer(circle);
             }
         
             return circleLayerGroup;  // Return the layer group
         }
-                                                                                                            
-        function updateMap(data, year) {
-            // Remove the existing circle layer groups from the map
-            circleLayerGroup.eachLayer(function (layer) {
-                map.removeLayer(layer);
-            });
-        
-            // Clear the circle layer group
-            circleLayerGroup.clearLayers();
-        
-            // Add data to the map based on the selected year
-            const filteredData = data.filter(d => d.year === year);
-        
-            for (const [county, coordinates] of Object.entries(countyCoordinates)) {
-                const countyData = filteredData.find(d => d.county === county);
-        
-                // Create a circle with a radius proportional to the population
-                const circle = L.circle(coordinates, {
-                    color: 'red',
-                    fillColor: '#f03',
-                    fillOpacity: 0.5,
-                    radius: Math.sqrt(countyData.population / Math.PI) * 10
+                                                                                                              
+            function updateMap(data, year) {
+                // Remove the existing circle layer groups from the map
+                circleLayerGroup.eachLayer(function (layer) {
+                    map.removeLayer(layer);
                 });
-                  
-                // Bind the popup containing the data to the circle
-                circle.bindPopup(`<b>County:</b> ${county}<br><b>Year:</b> ${year}<br><b>Total Population:</b> ${countyData.population.toFixed(0)}`);
-        
-                // Add the circle to the layer group
-                circleLayerGroup.addLayer(circle);
-        
-                // Add commute circles if the corresponding toggle is checked
-                if (document.getElementById(`${county.toLowerCase()}-radii-toggle`).checked) {
-                    const commuteCircleLayerGroup = createCommuteCircles(coordinates, countyCommuteData[county], county);
-                    circleLayerGroup.addLayer(commuteCircleLayerGroup);
-                    commuteCircleLayerGroup.addTo(map);
-                }
+            
+                // Clear the circle layer group
+                circleLayerGroup.clearLayers();
+            
+                // Add data to the map based on the selected year
+                const filteredData = data.filter(d => d.year === year);
+            
+                for (const [county, coordinates] of Object.entries(countyCoordinates)) {
+                    const countyData = filteredData.find(d => d.county === county);
                 
+                    // Add a check here to see if countyData is found
+                    if (countyData) {
+                        // If the county is Blanco, then create the population circle
+                        if (county === "Blanco") {
+                            const circle = L.circle(coordinates, {
+                                color: 'red',
+                                fillColor: '#f03',
+                                fillOpacity: 0.5,
+                                radius: Math.sqrt(countyData.population / Math.PI) * 10
+                            });
+                
+                            // Bind the popup containing the data to the circle
+                            circle.bindPopup(`<b>County:</b> ${county}<br><b>Year:</b> ${year}<br><b>Total Population:</b> ${countyData.population.toFixed(0)}`);
+                
+                            // Add the circle to the layer group
+                            circleLayerGroup.addLayer(circle);
+                        }
+                
+                        // Add commute circles only for Blanco if the corresponding toggle is checked
+                        if (county === "Blanco") {
+                            const commuteCircleLayerGroup = createCommuteCircles(coordinates, countyCommuteData[county], county);
+                            circleLayerGroup.addLayer(commuteCircleLayerGroup);
+                            commuteCircleLayerGroup.addTo(map);
+                        }
+                    } else {
+                        console.error(`No data found for county: ${county} in year: ${year}`);
+                    }
+                
+                    // Clear the subdivisionLayerGroup
+                    subdivisionLayerGroup.clearLayers();
+                
+                    for (const subdivision of subdivisions) {
+                        // Check if the year of the subdivision is equal to the selected year
+                        const subdivisionYear = getYearFromDate(subdivision.date);
+                        if (
+                            (subdivisionYear <= year && year <= 2020) ||
+                            (subdivisionYear === year && year > 2020)
+                        ) {
+                            // Check if the propertyType is "Single Family", if so, use the noAddressIcon
+                            const icon = subdivision.propertyType === "Single Family" ? noAddressIcon : myIcon;
+                            const marker = L.marker(subdivision.coordinates, { icon: icon });
+                            marker.bindPopup(`<b>Address:</b> ${subdivision.address}<br><b>Date:</b> ${subdivision.date}`);
+                            subdivisionLayerGroup.addLayer(marker);
+                        }
+                    }                                      
+                  }  // This closes the for-loop correctly
+                            
+                // Add the layer group to the map
+                subdivisionLayerGroup.addTo(map);
+            
+                // Add the layer group to the map before county overlays
+                circleLayerGroup.addTo(map);
+            
+                // Add the countyOverlayLayerGroup to the map
+                countyOverlayLayerGroup.addTo(map);
             }
-        
-            // Add the layer group to the map before county overlays
-            circleLayerGroup.addTo(map);
-        
-            // Add the countyOverlayLayerGroup to the map
-            countyOverlayLayerGroup.addTo(map);
-        }
-        
+                                
         // Update the table with the data for the selected year
         function updateTable(data, year) {
             const filteredData = data.filter(d => d.year === year);
@@ -228,24 +231,26 @@
                 const countyRow = document.getElementById(`${countyData.county.toLowerCase()}-row`);
                 const populationCell = countyRow.querySelector(`#${countyData.county.toLowerCase()}-population`);
                 const growthCell = countyRow.querySelector(`#${countyData.county.toLowerCase()}-growth`);
+                const permitsCell = countyRow.querySelector(`#${countyData.county.toLowerCase()}-permits`);  // Add this line
         
                 populationCell.textContent = countyData.population.toFixed(0);
                 growthCell.textContent = `${countyData.growth.toFixed(2)}%`;
+                permitsCell.textContent = countyData.permits;  // Add this line
             }
         }
-            
+                    
         // Update the map and table when the slider value changes
         document.getElementById("slider").addEventListener("input", (event) => {
             if (!data) {
                 return;
             }
         
-            const year = parseInt(event.target.value, 10);
+            const year = 2020 + parseInt(event.target.value, 10); // adjusted year calculation
             document.getElementById("slider-label").textContent = `Year: ${year}`;
         
             updateMap(data, year);
             updateTable(data, year);
-        });
+        });  
         
         // Add an event listener for the toggle
         document.querySelectorAll("#county-toggles input[type=checkbox]").forEach(toggle => {
@@ -266,17 +271,13 @@
 
         // Get the button and the control elements
         const toggleButton = document.getElementById('toggle-controls');
-        const sliderContainer = document.getElementById('slider-container');
-        const countyToggles = document.getElementById('county-toggles');
-        const populationTable = document.getElementById('population-table');
+        const controlsContainer = document.getElementById('controls-container');
         
         toggleButton.addEventListener('click', () => {
             // Check the current display style of the controls
-            if (sliderContainer.style.display !== 'none') {
+            if (controlsContainer.style.display !== 'none') {
                 // If the controls are not currently hidden, hide them
-                sliderContainer.style.display = 'none';
-                countyToggles.style.display = 'none';
-                populationTable.style.display = 'none';
+                controlsContainer.style.display = 'none';
         
                 // Update the button text
                 toggleButton.textContent = 'Show Controls';
@@ -285,9 +286,7 @@
                 document.body.classList.add('controls-hidden');
             } else {
                 // If the controls are currently hidden, show them
-                sliderContainer.style.display = 'block';
-                countyToggles.style.display = 'block';
-                populationTable.style.display = 'block';
+                controlsContainer.style.display = 'block';
         
                 // Update the button text
                 toggleButton.textContent = 'Hide Controls';
@@ -295,31 +294,33 @@
                 // Remove the class from the body
                 document.body.classList.remove('controls-hidden');
             }
-        });
-
-        // Fetch data and set up map and slider
-        async function initialize() {
-            await fetchData();
-            updateMap(data, 2020);
-            updateTable(data, 2020);
+        });   
         
         // Add subdivision markers into the layer group
         for (const subdivision of subdivisions) {
-            const marker = L.marker(subdivision.coordinates, { color: 'skyblue' });
-            marker.bindPopup(`<b>Address:</b> ${subdivision.address}<br><b>Worker Count:</b> ${subdivision.workerCount}`);
+            // Check if the propertyType is "Single Family", if so, use the noAddressIcon
+            const icon = subdivision.propertyType === "Single Family" ? noAddressIcon : myIcon;
+            const marker = L.marker(subdivision.coordinates, { icon: icon });
+            marker.bindPopup(`<b>Address:</b> ${subdivision.address ? subdivision.address : 'No address provided'}<br><b>County:</b> ${subdivision.workerCount}`);
             subdivisionLayerGroup.addLayer(marker);
-        }
-        
+        }     
+
         // Add the layer group to the map
         subdivisionLayerGroup.addTo(map);
-        }
-    
-        initialize();
-
-        loadGeoJSON(allCountiesGeoJSONUrl, "Travis", countyOverlayStyle());
-        loadGeoJSON(allCountiesGeoJSONUrl, "Blanco", countyOverlayStyle());
-        loadGeoJSON(allCountiesGeoJSONUrl, "Hays", countyOverlayStyle());
-        loadGeoJSON(allCountiesGeoJSONUrl, "Comal", countyOverlayStyle());
-    
-        // Add the countyOverlayLayerGroup to the map
-        countyOverlayLayerGroup.addTo(map);
+        
+        // Call fetchData to retrieve data from API
+        fetchData().then(() => {
+          // Now data is loaded. Call updateMap() and updateTable() here if needed.
+          const year = 2020 + parseInt(document.getElementById("slider").value, 10);  // get initial year
+        
+          updateMap(data, year);
+          updateTable(data, year);
+        
+          loadGeoJSON(allCountiesGeoJSONUrl, "Travis", countyOverlayStyle());
+          loadGeoJSON(allCountiesGeoJSONUrl, "Blanco", countyOverlayStyle());
+          loadGeoJSON(allCountiesGeoJSONUrl, "Hays", countyOverlayStyle());
+          loadGeoJSON(allCountiesGeoJSONUrl, "Comal", countyOverlayStyle());
+        
+          // Add the countyOverlayLayerGroup to the map
+          countyOverlayLayerGroup.addTo(map);
+        });
