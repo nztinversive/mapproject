@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-  <!-- Add this SVG pattern definition inside the body tag -->
+<!-- Add this SVG pattern definition inside the body tag -->
 <svg width="0" height="0">
   <defs>
     <pattern id="wind-pattern" patternUnits="userSpaceOnUse" width="20" height="20" viewBox="0 0 100 100">
@@ -35,58 +35,70 @@
         <div class="row">
             <div class="col-12 d-flex justify-content-end">
                 <button id="toggle-controls" class="btn btn-secondary">Hide Controls</button>
+                <p>* Blue pins are individual locations and red pins are subdivisions of 25 locations.</p>
             </div>
         </div>
         <div id="controls-container">
-    <div id="slider-container" class="container">
-        <div class="row">
-            <div class="col-2">
-                <label id="slider-label">Year: 2020</label>
-            </div>
-            <div class="col-10">
-                <!-- Removed "(Estimate)" from year labels -->
-                <div class="d-flex justify-content-between">
-                    <span>2020</span>
-                    <span>2021</span>
-                    <span>2022</span>
-                    <span>2023</span>
+            <div id="slider-container" class="container">
+                <!-- slider-container content here -->
+                <div class="row">
+                    <div class="col-2">
+                        <label id="slider-label">Year: 2020</label>
+                    </div>
+                    <div class="col-10">
+                        <!-- Removed "(Estimate)" from year labels -->
+                        <div class="d-flex justify-content-between">
+                            <span>2020</span>
+                            <span>2021</span>
+                            <span>2022</span>
+                            <span>2023</span>
+                            <span>2024</span>
+                            <span>2025</span>
+                        </div>
+                    <input id="slider" type="range" min="0" max="5" step="1" value="0">
+                    </div>
                 </div>
-              <input id="slider" type="range" min="0" max="3" step="1" value="0">
+            </div>
+            <div id="population-table">
+                <!-- population-table content here -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>County</th>
+                            <th>Population</th>
+                            <th>Percentage Growth</th>
+                            <th>Building Permits</th> <!-- Added Building Permits column -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr id="travis-row">
+                            <td>Travis</td>
+                            <td id="travis-population"></td>
+                            <td id="travis-growth"></td>
+                            <td id="travis-permits"></td> <!-- Added Building Permits cell -->
+                        </tr>
+                        <tr id="blanco-row">
+                            <td>Blanco</td>
+                            <td id="blanco-population"></td>
+                            <td id="blanco-growth"></td>
+                            <td id="blanco-permits"></td> <!-- Added Building Permits cell -->
+                        </tr>
+                        <tr id="hays-row">
+                            <td>Hays</td>
+                            <td id="hays-population"></td>
+                            <td id="hays-growth"></td>
+                            <td id="hays-permits"></td> <!-- Added Building Permits cell -->
+                        </tr>
+                        <tr id="comal-row">
+                            <td>Comal</td>
+                            <td id="comal-population"></td>
+                            <td id="comal-growth"></td>
+                            <td id="comal-permits"></td> <!-- Added Building Permits cell -->
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
-    <div id="population-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>County</th>
-                    <th>Population</th>
-                    <th>Percentage Growth</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr id="travis-row">
-                    <td>Travis</td>
-                    <td id="travis-population"></td>
-                    <td id="travis-growth"></td>
-                </tr>
-                <tr id="blanco-row">
-                    <td>Blanco</td>
-                    <td id="blanco-population"></td>
-                    <td id="blanco-growth"></td>
-                </tr>
-                <tr id="hays-row">
-                    <td>Hays</td>
-                    <td id="hays-population"></td>
-                    <td id="hays-growth"></td>
-                </tr>
-                <tr id="comal-row">
-                    <td>Comal</td>
-                    <td id="comal-population"></td>
-                    <td id="comal-growth"></td>
-                </tr>
-            </tbody>
-        </table>
     </div>
     <script type="module" src="/static/map.js"> </script>
 <footer class="footer">
@@ -96,5 +108,3 @@
 </footer>
 </body>
 </html>
-
-
