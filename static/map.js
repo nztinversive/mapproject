@@ -36,13 +36,7 @@ import { mapCenter, baseLayerAttribution, baseLayerUrl, subdivisions, countyCoor
             iconAnchor: [12, 41],
             popupAnchor: [1, -34]
         });        
-
-        // Load the data from the Flask API
-        async function fetchData() {
-            const response = await fetch('/api/data');
-            data = await response.json();
-        }
-        
+ 
         // Create a new layer group for county border overlays
         const countyOverlayLayerGroup = L.layerGroup();
         
@@ -112,25 +106,30 @@ import { mapCenter, baseLayerAttribution, baseLayerUrl, subdivisions, countyCoor
         }
         
         function createCommuteCircles(coordinates, commuteData, county) {
-            const colors = ['rgba(0, 255, 0, 1)', 'rgba(0, 0, 139, 1)', 'rgba(255, 255, 0, 0.5)', 'rgba(255, 165, 0, 0.5)', 'rgba(255, 0, 0, 0.5)'];
- // Green, Blue, Yellow, Orange, Red
+            const colors = ['rgba(0, 255, 0, 1)', 'rgba(0, 0, 139, 1)', 'rgba(255, 255, 0, 0.5)', 'rgba(255, 165, 0, 0.5)', 'rgba(255, 0, 0, 0.5)']; 
+            // These are your original colors for the circles.
+                      
+            const popupColors = ['#ad7635', '#c6754d', '#faa762','#f8a583','#f5b3af' ]; 
+            // These are your new colors for the popups.
+        
             const borderColor = 'black';
             let circleLayerGroup = L.layerGroup();  // Create a layer group   
-              
+        
             // Sort the commuteData array in descending order by commute time
             commuteData.sort((a, b) => b.time - a.time);
-                  
-            const legendHTML = createLegend(commuteData, colors);
-        
+            
+            // We pass popupColors instead of colors for the legend creation.
+            const legendHTML = createLegend(commuteData, popupColors);
+            
             for (let i = 0; i < commuteData.length; i++) {
                 const circle = L.circle(coordinates, {
                     color: borderColor,
-                    fillColor: colors[i % colors.length], // using modulo to cycle through colors
+                    fillColor: colors[i % colors.length], 
                     fillOpacity: 0.5,
                     radius: (commuteData[i].time / 60) * commuteData[i].speed * 1000,
                     weight: 1,
                     opacity: 0.6,
-                    interactive: true // Set interactive to true for all circles
+                    interactive: true 
                 });
         
                 // Add a popup for each piece of the radii
@@ -143,14 +142,14 @@ import { mapCenter, baseLayerAttribution, baseLayerUrl, subdivisions, countyCoor
                         </div>
                     </div>
                 `);
-                      
-           // Add the circle to the feature group
+                
+                // Add the circle to the feature group
                 circleLayerGroup.addLayer(circle);
             }
         
-            return circleLayerGroup;  // Return the layer group
+            return circleLayerGroup;  
         }
-                                                                                                              
+                                                                                                                      
             function updateMap(data, year) {
                 // Remove the existing circle layer groups from the map
                 circleLayerGroup.eachLayer(function (layer) {
@@ -308,19 +307,30 @@ import { mapCenter, baseLayerAttribution, baseLayerUrl, subdivisions, countyCoor
         // Add the layer group to the map
         subdivisionLayerGroup.addTo(map);
         
-        // Call fetchData to retrieve data from API
+        // Load the data from the Flask API
+        async function fetchData() {
+            // Show the loading screen
+            document.getElementById("loading-screen").style.display = "flex";
+            const response = await fetch('/api/data');
+            data = await response.json();
+        }
+        
         fetchData().then(() => {
-          // Now data is loaded. Call updateMap() and updateTable() here if needed.
-          const year = 2020 + parseInt(document.getElementById("slider").value, 10);  // get initial year
+            // Now data is loaded. Call updateMap() and updateTable() here if needed.
+            const year = 2020 + parseInt(document.getElementById("slider").value, 10);  // get initial year
         
-          updateMap(data, year);
-          updateTable(data, year);
+            updateMap(data, year);
+            updateTable(data, year);
         
-          loadGeoJSON(allCountiesGeoJSONUrl, "Travis", countyOverlayStyle());
-          loadGeoJSON(allCountiesGeoJSONUrl, "Blanco", countyOverlayStyle());
-          loadGeoJSON(allCountiesGeoJSONUrl, "Hays", countyOverlayStyle());
-          loadGeoJSON(allCountiesGeoJSONUrl, "Comal", countyOverlayStyle());
+            loadGeoJSON(allCountiesGeoJSONUrl, "Travis", countyOverlayStyle());
+            loadGeoJSON(allCountiesGeoJSONUrl, "Blanco", countyOverlayStyle());
+            loadGeoJSON(allCountiesGeoJSONUrl, "Hays", countyOverlayStyle());
+            loadGeoJSON(allCountiesGeoJSONUrl, "Comal", countyOverlayStyle());
         
-          // Add the countyOverlayLayerGroup to the map
-          countyOverlayLayerGroup.addTo(map);
+            // Add the countyOverlayLayerGroup to the map
+            countyOverlayLayerGroup.addTo(map);
+        
+            // Hide the loading screen
+            document.getElementById("loading-screen").style.display = "none";
         });
+        
